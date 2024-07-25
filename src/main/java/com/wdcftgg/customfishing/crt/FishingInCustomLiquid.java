@@ -32,7 +32,7 @@ public class FishingInCustomLiquid {
 
         FishingCondition fishingCondition =
                 new FishingCondition(
-                        CraftTweakerMC.getFluid(liquid.getDefinition()).getBlock().getRegistryName().toString(), new ResourceLocation(namespaceIn, pathIn),
+                        (liquid == null) ? null : CraftTweakerMC.getFluid(liquid.getDefinition()).getBlock().getRegistryName().toString(), new ResourceLocation(namespaceIn, pathIn),
                         CraftTweakerMC.getItemStack(iitemStack),
                         chance, biomeid, dimid);
         FishingConditionInit.registryFishingCondition(fishingCondition);

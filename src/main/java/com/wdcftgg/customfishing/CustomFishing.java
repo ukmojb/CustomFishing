@@ -21,13 +21,13 @@ import java.util.Map;
  * @Author : wdcftgg
  * @create 2023/8/22 19:11
  */
-@Mod(modid = CustomFishing.MODID, name = CustomFishing.NAME, version = CustomFishing.VERSION)
+@Mod(modid = CustomFishing.MODID, name = CustomFishing.NAME, version = CustomFishing.VERSION, dependencies="required-after:crafttweaker")
 public class CustomFishing {
     private static Logger logger;
 
     public static final String MODID = "customfishing";
     public static final String NAME = "CustomFishing";
-    public static final String VERSION = "0.0.1";
+    public static final String VERSION = "0.0.5";
 
     @Mod.Instance
     public static CustomFishing instance;
