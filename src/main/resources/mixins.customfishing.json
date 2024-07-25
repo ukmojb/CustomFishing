@@ -1,0 +1,16 @@
+{
+  "package": "com.wdcftgg.customfishing.mixins",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "mixins.customfishing.refmap.json",
+  "mixins": [
+    "MixinItemFishingRod"
+  ],
+  "client": [
+    "MixinNetHandlerPlayClient"
+  ],
+  "server": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
