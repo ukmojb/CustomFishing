@@ -5,6 +5,7 @@ import com.wdcftgg.customfishing.entity.ModEntityInit;
 import com.wdcftgg.customfishing.proxy.CommonProxy;
 import com.wdcftgg.customfishing.proxy.ServerProxy;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.SoundEvents;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -27,13 +28,13 @@ public class CustomFishing {
 
     public static final String MODID = "customfishing";
     public static final String NAME = "CustomFishing";
-    public static final String VERSION = "0.0.5";
+    public static final String VERSION = "0.0.8";
 
     @Mod.Instance
     public static CustomFishing instance;
 
     public static final String CLIENT_PROXY_CLASS = "com.wdcftgg.customfishing.proxy.ClientProxy";
-    public static final String SERVER_PROXY_CLASS = "com.wdcftgg.customfishing.proxy.ServerProxy";
+    public static final String SERVER_PROXY_CLASS = "com.wdcftgg.customfishing.proxy.CommonProxy";
 
     public static Map<EntityPlayer, CFEntityFishHook> fishEntity = new HashMap<>();
 
@@ -45,23 +46,24 @@ public class CustomFishing {
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-        ModEntityInit.registerEntities();
+
 
         proxy.onPreInit();
-        serverProxy.onPreInit();
+//        serverProxy.onPreInit();
         logger = event.getModLog();
+
     }
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         proxy.onInit();
-        serverProxy.onInit();
+//        serverProxy.onInit();
     }
 
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
         proxy.onPostInit();
-        serverProxy.onPostInit();
+//        serverProxy.onPostInit();
     }
 
 }

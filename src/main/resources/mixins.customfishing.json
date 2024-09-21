@@ -5,10 +5,9 @@
   "mixins": [
     "MixinItemFishingRod"
   ],
-  "client": [
-    "MixinNetHandlerPlayClient"
+  "server" : [
   ],
-  "server": [
+  "client" : [
   ],
   "injectors": {
     "defaultRequire": 1

@@ -12,8 +12,9 @@ public class ClientProxy extends CommonProxy {
 
 
     public void onPreInit() {
+        super.onPreInit();
 
-        RenderingRegistry.registerEntityRenderingHandler(CFEntityFishHook.class, RenderCFFish::new);
+        RenderingRegistry.registerEntityRenderingHandler(CFEntityFishHook.class, RenderCFFish.FACTORY);
 
     }
 

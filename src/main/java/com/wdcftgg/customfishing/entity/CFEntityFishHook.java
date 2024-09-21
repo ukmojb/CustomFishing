@@ -3,6 +3,7 @@ package com.wdcftgg.customfishing.entity;
 import com.wdcftgg.customfishing.crt.FishingCondition;
 import com.wdcftgg.customfishing.crt.FishingConditionInit;
 import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.material.MaterialLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
@@ -31,15 +32,18 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.storage.loot.LootContext;
 import net.minecraft.world.storage.loot.LootTable;
 import net.minecraft.world.storage.loot.LootTableList;
+import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 
 
+@SuppressWarnings("rawtypes")
 public class CFEntityFishHook extends EntityFishHook {
     static enum State
     {
@@ -54,7 +58,6 @@ public class CFEntityFishHook extends EntityFishHook {
     private int lureSpeed;
     private int luck;
     private String liquidName = "";
-
     private static final DataParameter<Integer> DATA_HOOKED_ENTITY = EntityDataManager.<Integer>createKey(EntityFishHook.class, DataSerializers.VARINT);
 
     final static Field currentStateField = ObfuscationReflectionHelper.findField(EntityFishHook.class, "field_190627_av");//
@@ -70,8 +73,8 @@ public class CFEntityFishHook extends EntityFishHook {
     final static Object objBobbing = stateEnumField.getEnumConstants()[2];
 
     @SideOnly(Side.CLIENT)
-    public CFEntityFishHook(World worldIn, EntityPlayer player, double x, double y, double z) {
-        super(worldIn, player, x, y, z);
+    public CFEntityFishHook(World worldIn, EntityPlayer p_i47290_2_, double x, double y, double z) {
+        super(worldIn, p_i47290_2_, x, y, z);
         this.isImmuneToFire = true;
     }
 
@@ -81,7 +84,7 @@ public class CFEntityFishHook extends EntityFishHook {
     }
 
     public CFEntityFishHook(World worldIn) {
-        super(worldIn, worldIn.getPlayerEntityByUUID(Minecraft.getMinecraft().getSession().getProfile().getId()));
+        super(worldIn, (!worldIn.isRemote ? worldIn.getPlayerEntityByUUID(Minecraft.getMinecraft().getSession().getProfile().getId()) : Minecraft.getMinecraft().player));
         this.isImmuneToFire = true;
     }
 
@@ -97,6 +100,12 @@ public class CFEntityFishHook extends EntityFishHook {
 
     public double getLiquidMotion() {
         return 0.2D;
+    }
+
+    @Override
+    public boolean isInWater() {
+        IBlockState iblockstate = this.world.getBlockState(this.getPosition());
+        return iblockstate.getMaterial().isLiquid();
     }
 
     public SoundEvent getSoundEvent() {
@@ -120,16 +129,17 @@ public class CFEntityFishHook extends EntityFishHook {
     }
 
     @Override
-    public void setLuck(int p_191517_1_)
-    {
-        this.luck = p_191517_1_;
-    }
-
-    @Override
     protected void entityInit()
     {
         this.getDataManager().register(DATA_HOOKED_ENTITY, Integer.valueOf(0));
     }
+
+    @Override
+    public void setLuck(int luck)
+    {
+        this.luck = luck;
+    }
+
 
     @Override
     public void notifyDataManagerChange(DataParameter<?> key)
@@ -311,74 +321,6 @@ public class CFEntityFishHook extends EntityFishHook {
         }
     }
 
-    private boolean shouldStopFishing() {
-        ItemStack itemstack = this.getAngler().getHeldItemMainhand();
-        ItemStack itemstack1 = this.getAngler().getHeldItemOffhand();
-        boolean flag = itemstack.getItem() instanceof ItemFishingRod;
-
-        if(!this.getAngler().isDead && this.getAngler().isEntityAlive() && flag && this.getDistanceSq(this.getAngler()) <= 1024.0D) return false;
-        else {
-            this.setDead();
-            return true;
-        }
-    }
-
-    private void updateRotation() {
-        float f = MathHelper.sqrt(this.motionX * this.motionX + this.motionZ * this.motionZ);
-        this.rotationYaw = (float)(MathHelper.atan2(this.motionX, this.motionZ) * (180D / Math.PI));
-
-        for(this.rotationPitch = (float)(MathHelper.atan2(this.motionY, (double)f) * (180D / Math.PI)); this.rotationPitch - this.prevRotationPitch < -180.0F; this.prevRotationPitch -= 360.0F) ;
-
-        while(this.rotationPitch - this.prevRotationPitch >= 180.0F)  this.prevRotationPitch += 360.0F;
-
-        while(this.rotationYaw - this.prevRotationYaw < -180.0F) this.prevRotationYaw -= 360.0F;
-
-        while(this.rotationYaw - this.prevRotationYaw >= 180.0F) this.prevRotationYaw += 360.0F;
-
-        this.rotationPitch = this.prevRotationPitch + (this.rotationPitch - this.prevRotationPitch) * 0.2F;
-        this.rotationYaw = this.prevRotationYaw + (this.rotationYaw - this.prevRotationYaw) * 0.2F;
-    }
-
-    private void checkCollision() {
-        Vec3d vec3d = new Vec3d(this.posX, this.posY, this.posZ);
-        Vec3d vec3d1 = new Vec3d(this.posX + this.motionX, this.posY + this.motionY, this.posZ + this.motionZ);
-        RayTraceResult raytraceresult = this.world.rayTraceBlocks(vec3d, vec3d1, false, true, false);
-        vec3d = new Vec3d(this.posX, this.posY, this.posZ);
-        vec3d1 = new Vec3d(this.posX + this.motionX, this.posY + this.motionY, this.posZ + this.motionZ);
-
-        if(raytraceresult != null) vec3d1 = new Vec3d(raytraceresult.hitVec.x, raytraceresult.hitVec.y, raytraceresult.hitVec.z);
-
-        Entity entity = null;
-        List<Entity> list = this.world.getEntitiesWithinAABBExcludingEntity(this, this.getEntityBoundingBox().expand(this.motionX, this.motionY, this.motionZ).grow(1.0D));
-        double d0 = 0.0D;
-
-        for(Entity entity1 : list) {
-            if(this.canBeHooked(entity1) && (entity1 != this.getAngler() || this.ticksInAir >= 5)) {
-                AxisAlignedBB axisalignedbb = entity1.getEntityBoundingBox().grow(0.30000001192092896D);
-                RayTraceResult raytraceresult1 = axisalignedbb.calculateIntercept(vec3d, vec3d1);
-
-                if(raytraceresult1 != null) {
-                    double d1 = vec3d.squareDistanceTo(raytraceresult1.hitVec);
-
-                    if(d1 < d0 || d0 == 0.0D) {
-                        entity = entity1;
-                        d0 = d1;
-                    }
-                }
-            }
-        }
-
-        if(entity != null) raytraceresult = new RayTraceResult(entity);
-
-        if(raytraceresult != null && raytraceresult.typeOfHit != RayTraceResult.Type.MISS) {
-            if(raytraceresult.typeOfHit == RayTraceResult.Type.ENTITY) {
-                this.caughtEntity = raytraceresult.entityHit;
-                setHookedEntity();
-            }
-            else setInGround(this, true);
-        }
-    }
-
     @Override
     public int handleHookRetraction()
     {
@@ -403,7 +345,7 @@ public class CFEntityFishHook extends EntityFishHook {
                     Random random = new Random();
                     result = (passFishingCondition(fishingCondition, liquidName, world.getBiome(this.getPosition()).getRegistryName(), world.provider.getDimension()))
                             ? world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes()).generateLootForPools(random, lootcontext$builder.build())
-                                : result;
+                            : result;
                 }
 
                 for (FishingCondition fishingCondition : FishingConditionInit.getAllFishingCondition()) {
@@ -481,6 +423,74 @@ public class CFEntityFishHook extends EntityFishHook {
         return pass1 && pass2 && pass3 && pass4 && pass5;
     }
 
+    private boolean shouldStopFishing() {
+        ItemStack itemstack = this.getAngler().getHeldItemMainhand();
+        ItemStack itemstack1 = this.getAngler().getHeldItemOffhand();
+        boolean flag = itemstack.getItem() instanceof ItemFishingRod;
+        boolean flag1 = itemstack1.getItem() instanceof ItemFishingRod;
+
+        if(!this.getAngler().isDead && this.getAngler().isEntityAlive() && flag != flag1 && this.getDistanceSq(this.getAngler()) <= 1024.0D) return false;
+        else {
+            this.setDead();
+            return true;
+        }
+    }
+
+    private void updateRotation() {
+        float f = MathHelper.sqrt(this.motionX * this.motionX + this.motionZ * this.motionZ);
+        this.rotationYaw = (float)(MathHelper.atan2(this.motionX, this.motionZ) * (180D / Math.PI));
+
+        for(this.rotationPitch = (float)(MathHelper.atan2(this.motionY, (double)f) * (180D / Math.PI)); this.rotationPitch - this.prevRotationPitch < -180.0F; this.prevRotationPitch -= 360.0F) ;
+
+        while(this.rotationPitch - this.prevRotationPitch >= 180.0F)  this.prevRotationPitch += 360.0F;
+
+        while(this.rotationYaw - this.prevRotationYaw < -180.0F) this.prevRotationYaw -= 360.0F;
+
+        while(this.rotationYaw - this.prevRotationYaw >= 180.0F) this.prevRotationYaw += 360.0F;
+
+        this.rotationPitch = this.prevRotationPitch + (this.rotationPitch - this.prevRotationPitch) * 0.2F;
+        this.rotationYaw = this.prevRotationYaw + (this.rotationYaw - this.prevRotationYaw) * 0.2F;
+    }
+
+    private void checkCollision() {
+        Vec3d vec3d = new Vec3d(this.posX, this.posY, this.posZ);
+        Vec3d vec3d1 = new Vec3d(this.posX + this.motionX, this.posY + this.motionY, this.posZ + this.motionZ);
+        RayTraceResult raytraceresult = this.world.rayTraceBlocks(vec3d, vec3d1, false, true, false);
+        vec3d = new Vec3d(this.posX, this.posY, this.posZ);
+        vec3d1 = new Vec3d(this.posX + this.motionX, this.posY + this.motionY, this.posZ + this.motionZ);
+
+        if(raytraceresult != null) vec3d1 = new Vec3d(raytraceresult.hitVec.x, raytraceresult.hitVec.y, raytraceresult.hitVec.z);
+
+        Entity entity = null;
+        List<Entity> list = this.world.getEntitiesWithinAABBExcludingEntity(this, this.getEntityBoundingBox().expand(this.motionX, this.motionY, this.motionZ).grow(1.0D));
+        double d0 = 0.0D;
+
+        for(Entity entity1 : list) {
+            if(this.canBeHooked(entity1) && (entity1 != this.getAngler() || this.ticksInAir >= 5)) {
+                AxisAlignedBB axisalignedbb = entity1.getEntityBoundingBox().grow(0.30000001192092896D);
+                RayTraceResult raytraceresult1 = axisalignedbb.calculateIntercept(vec3d, vec3d1);
+
+                if(raytraceresult1 != null) {
+                    double d1 = vec3d.squareDistanceTo(raytraceresult1.hitVec);
+
+                    if(d1 < d0 || d0 == 0.0D) {
+                        entity = entity1;
+                        d0 = d1;
+                    }
+                }
+            }
+        }
+
+        if(entity != null) raytraceresult = new RayTraceResult(entity);
+
+        if(raytraceresult != null && raytraceresult.typeOfHit != RayTraceResult.Type.MISS) {
+            if(raytraceresult.typeOfHit == RayTraceResult.Type.ENTITY) {
+                this.caughtEntity = raytraceresult.entityHit;
+                setHookedEntity();
+            }
+            else setInGround(this, true);
+        }
+    }
 
     private void setHookedEntity() {
         this.getDataManager().set(DATA_HOOKED_ENTITY, Integer.valueOf(this.caughtEntity.getEntityId() + 1));
