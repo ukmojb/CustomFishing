@@ -28,7 +28,7 @@ public class CustomFishing {
 
     public static final String MODID = "customfishing";
     public static final String NAME = "CustomFishing";
-    public static final String VERSION = "0.0.8";
+    public static final String VERSION = "0.0.9";
 
     @Mod.Instance
     public static CustomFishing instance;
@@ -36,7 +36,6 @@ public class CustomFishing {
     public static final String CLIENT_PROXY_CLASS = "com.wdcftgg.customfishing.proxy.ClientProxy";
     public static final String SERVER_PROXY_CLASS = "com.wdcftgg.customfishing.proxy.CommonProxy";
 
-    public static Map<EntityPlayer, CFEntityFishHook> fishEntity = new HashMap<>();
 
     @SidedProxy(clientSide = CLIENT_PROXY_CLASS, serverSide = SERVER_PROXY_CLASS)
     public static CommonProxy proxy;
