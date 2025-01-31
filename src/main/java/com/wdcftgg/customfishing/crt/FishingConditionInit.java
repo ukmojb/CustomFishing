@@ -11,6 +11,6 @@ public class FishingConditionInit {
     }
 
     public static List<FishingCondition> getAllFishingCondition(){
-        return  conditionList;
+        return conditionList;
     }
 }

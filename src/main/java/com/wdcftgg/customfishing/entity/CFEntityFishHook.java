@@ -1,5 +1,6 @@
 package com.wdcftgg.customfishing.entity;
 
+import com.wdcftgg.customfishing.CFConfig;
 import com.wdcftgg.customfishing.crt.FishingCondition;
 import com.wdcftgg.customfishing.crt.FishingConditionInit;
 import net.minecraft.block.BlockLiquid;
@@ -12,6 +13,7 @@ import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityFishHook;
+import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
@@ -36,6 +38,8 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -54,6 +58,8 @@ public class CFEntityFishHook extends EntityFishHook {
     private int lureSpeed;
     private int luck;
     private String liquidName = "";
+
+    private boolean liquidIsLava = false;
 
     private static final DataParameter<Integer> DATA_HOOKED_ENTITY = EntityDataManager.<Integer>createKey(EntityFishHook.class, DataSerializers.VARINT);
 
@@ -90,7 +96,6 @@ public class CFEntityFishHook extends EntityFishHook {
 
         if(iblockstate.getMaterial().isLiquid()) {
             liquidName = iblockstate.getBlock().getRegistryName().toString();
-//            System.out.println(BlockLiquid.getBlockLiquidHeight(iblockstate, worldIn, blockpos));
             return BlockLiquid.getBlockLiquidHeight(iblockstate, worldIn, blockpos);
         }
         return 0.0f;
@@ -197,7 +202,6 @@ public class CFEntityFishHook extends EntityFishHook {
                 }
             }
             else {
-//                System.out.println(getHookState(this));
                 if(getHookState(this) == State.HOOKED_IN_ENTITY) {
                     if(this.caughtEntity != null) {
                         if(this.caughtEntity.isDead) {
@@ -267,6 +271,24 @@ public class CFEntityFishHook extends EntityFishHook {
             }
         }
         else if(getTicksCatchableDelay(this) > 0) {
+
+            boolean haveCustomLiquid = false;
+
+            for (FishingCondition fishingCondition : FishingConditionInit.getAllFishingCondition()) {
+                if (haveCustomLiquid) break;
+                boolean isFishingCondition = passFishingCondition(fishingCondition, liquidName, world.getBiome(this.getPosition()).getRegistryName(), world.provider.getDimension());
+
+
+                haveCustomLiquid = (CFConfig.FishingInAnyLiquid || isFishingCondition);
+            }
+
+            if (liquidName == Blocks.WATER.getRegistryName().toString()) {
+                haveCustomLiquid = true;
+            }
+
+            if (!haveCustomLiquid) return;
+
+
             setTicksCatchableDelay(this, getTicksCatchableDelay(this)-i);
 
             if(getTicksCatchableDelay(this) > 0) {
@@ -415,23 +437,36 @@ public class CFEntityFishHook extends EntityFishHook {
                 lootcontext$builder.withLuck((float)this.luck + getAngler().getLuck()).withPlayer(getAngler()).withLootedEntity(this); // Forge: add player & looted entity to LootContext
                 List<ItemStack> result = this.world.getLootTableManager().getLootTableFromLocation(LootTableList.GAMEPLAY_FISHING).generateLootForPools(this.rand, lootcontext$builder.build());
 
-                for (FishingCondition fishingCondition : FishingConditionInit.getAllFishingCondition()) {
-                    Random random = new Random();
-                    result = (passFishingCondition(fishingCondition, liquidName, world.getBiome(this.getPosition()).getRegistryName(), world.provider.getDimension()))
-                            ? world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes()).generateLootForPools(random, lootcontext$builder.build())
-                            : result;
-                }
+                List<FishingCondition> fishingConditionList = FishingConditionInit.getAllFishingCondition();
+
+                Collections.shuffle(fishingConditionList);
 
                 for (FishingCondition fishingCondition : FishingConditionInit.getAllFishingCondition()) {
+                    Random random = new Random();
+                    boolean isFishingCondition = passFishingCondition(fishingCondition, liquidName, world.getBiome(this.getPosition()).getRegistryName(), world.provider.getDimension());
+
+                    if (CFConfig.FishingInAnyLiquid) {
+                        result = (isFishingCondition)
+                                ? world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes()).generateLootForPools(random, lootcontext$builder.build())
+                                : result;
+                    } else {
+                        result = (isFishingCondition)
+                                ? world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes()).generateLootForPools(random, lootcontext$builder.build())
+                                : new ArrayList<>();
+                    }
+                }
+
+
+                for (FishingCondition fishingCondition : fishingConditionList) {
                     Random random = new Random();
                     if (passFishingCondition(fishingCondition, liquidName, world.getBiome(this.getPosition()).getRegistryName(), world.provider.getDimension())) {
-                        if (random.nextFloat() <= fishingCondition.getChance()) {
+                        float rf = random.nextFloat();
+                        if (rf <= fishingCondition.getChance()) {
                             result.add(fishingCondition.getItemStack());
                         }
+                        if (CFConfig.OneAtATime) break;
                     }
-
                 }
-
 
                 event = new net.minecraftforge.event.entity.player.ItemFishedEvent(result, getInGround(this) ? 2 : 1, this);
                 net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(event);
@@ -441,6 +476,7 @@ public class CFEntityFishHook extends EntityFishHook {
                     return event.getRodDamage();
                 }
 
+
                 for (ItemStack itemstack : result)
                 {
 
@@ -449,14 +485,17 @@ public class CFEntityFishHook extends EntityFishHook {
                     double d1 = getAngler().posY - this.posY;
                     double d2 = getAngler().posZ - this.posZ;
                     double d3 = (double)MathHelper.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
-                    double d4 = 0.1D;
-                    entityitem.motionX = d0 * 0.1D;
-                    entityitem.motionY = d1 * 0.1D + (double)MathHelper.sqrt(d3) * 0.08D;
-                    entityitem.motionZ = d2 * 0.1D;
+                    double addspeed = CFConfig.getliquidSpeedMap().containsKey(liquidName) ? CFConfig.getliquidSpeedMap().get(liquidName) : 1.0F;
+
+
+                    entityitem.motionX = d0 * 0.1D + addspeed;
+                    entityitem.motionY = d1 * 0.1D + (double)MathHelper.sqrt(d3) * 0.15D + addspeed;
+                    entityitem.motionZ = d2 * 0.1D + addspeed;
                     NBTTagCompound nbtTagCompound = new NBTTagCompound();
                     nbtTagCompound = entityitem.writeToNBT(nbtTagCompound);
                     nbtTagCompound.setShort("Health", (short)1000);
                     entityitem.readEntityFromNBT(nbtTagCompound);
+                    if (CFConfig.itemInvulnerable) entityitem.setEntityInvulnerable(true);
                     this.world.spawnEntity(entityitem);
                     getAngler().world.spawnEntity(new EntityXPOrb(getAngler().world, getAngler().posX, getAngler().posY + 0.5D, getAngler().posZ + 0.5D, this.rand.nextInt(6) + 1));
                     Item item = itemstack.getItem();
@@ -489,10 +528,7 @@ public class CFEntityFishHook extends EntityFishHook {
         boolean pass2 = (fishingCondition.getItemStack() == null || fishingCondition.getItemStack() != ItemStack.EMPTY);
         boolean pass3 = (fishingCondition.getLootRes().toString().equals("minecraft:") || world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes()) != LootTable.EMPTY_LOOT_TABLE);
         boolean pass4 = (fishingCondition.getDimid() == null || fishingCondition.getDimid().equals(dimid));
-        boolean pass5 = (fishingCondition.getBiomeid().toString().equals("minecraft:") || fishingCondition.getBiomeid().equals(biomeid.toString()));
-
-//        System.out.println(fishingCondition.getLootRes().toString().equals("minecraft:") + "ddd");
-//        System.out.println((world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes()) == LootTable.EMPTY_LOOT_TABLE) + "aaa");
+        boolean pass5 = (fishingCondition.getBiomeid() == "" || fishingCondition.getBiomeid().equals(biomeid.toString()));
 
         return pass1 && pass2 && pass3 && pass4 && pass5;
     }

@@ -28,7 +28,7 @@ public class CustomFishing {
 
     public static final String MODID = "customfishing";
     public static final String NAME = "CustomFishing";
-    public static final String VERSION = "0.0.9";
+    public static final String VERSION = "0.1.3";
 
     @Mod.Instance
     public static CustomFishing instance;
@@ -63,6 +63,10 @@ public class CustomFishing {
     public void postInit(FMLPostInitializationEvent event) {
         proxy.onPostInit();
 //        serverProxy.onPostInit();
+    }
+
+    public static void log(String str) {
+        logger.info(str);
     }
 
 }

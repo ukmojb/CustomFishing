@@ -11,9 +11,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(EntityFishHook.class)
@@ -22,34 +20,70 @@ public abstract class MixinEntityFishHook extends Entity {
     @Shadow
     public EntityFishHook.State currentState = EntityFishHook.State.FLYING;
 
+    private float newf = 0;
+
     public MixinEntityFishHook(World worldIn) {
         super(worldIn);
+    }
+
+
+    @Inject(
+            method = "init",
+            at = @At(
+                    value = "HEAD"
+            )
+    )
+    private void init(EntityPlayer player, CallbackInfo ci)
+    {
+        this.isImmuneToFire = true;
     }
 
     @Inject(
             method = "onUpdate",
             at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/entity/projectile/EntityFishHook;move(Lnet/minecraft/entity/MoverType;DDD)V" // move 方法
+                    value = "HEAD",
+                    target = "Lnet/minecraft/entity/projectile/EntityFishHook;move(Lnet/minecraft/entity/MoverType;DDD)V"
             )
     )
-    private void beforeMove(CallbackInfo ci) {
+    public void moveUp(CallbackInfo ci) {
 
         BlockPos blockpos = new BlockPos(this);
         IBlockState iblockstate = this.world.getBlockState(blockpos);
 
-
-        if (this.currentState == EntityFishHook.State.BOBBING && iblockstate.getMaterial().isLiquid())
+        if (!iblockstate.getMaterial().isLiquid())
         {
-//            this.motionX *= 0.9D;
-//            this.motionZ *= 0.9D;
-            this.motionY += 0.03D;
+            this.motionY -= 0.031D;
         }
 
-        if ((iblockstate.getMaterial() != Material.WATER) && iblockstate.getMaterial().isLiquid())
-        {
-            this.motionY += 0.03D;
-        }
+    }
+
+
+    @ModifyConstant(
+            method = "onUpdate",
+            constant = @Constant(doubleValue = 0.03D)
+    )
+    private double modifyMotionYConstant(double original) {
+        return 0; // 将 `0.03D` 替换为 `c`
+    }
+
+
+
+
+    @Inject(
+            method = "onUpdate",
+            at = @At(
+                    value = "HEAD",
+                    target = "Lnet/minecraft/block/material/Material;WATER:Lnet/minecraft/block/material/Material;",
+                    ordinal = 1
+            )
+    )
+    private void getOtherLiquidHeight(CallbackInfo ci) {
+
+        BlockPos blockpos = new BlockPos(this);
+        IBlockState iblockstate = this.world.getBlockState(blockpos);
+
+        newf = getLiquidHeight(this.world, blockpos);
+
     }
 
     @ModifyVariable(
@@ -58,8 +92,7 @@ public abstract class MixinEntityFishHook extends Entity {
             ordinal = 0
     )
     private float modifyF(float f) {
-        if (f == 0.0F)  f = getLiquidHeight(this.world, this.getPosition());
-        return f;
+        return newf;
     }
 
     private float getLiquidHeight(World worldIn, BlockPos blockpos) {
