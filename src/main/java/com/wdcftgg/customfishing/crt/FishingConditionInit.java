@@ -1,5 +1,7 @@
 package com.wdcftgg.customfishing.crt;
 
+import com.wdcftgg.customfishing.crt.impl.FishingCondition;
+
 import java.util.ArrayList;
 import java.util.List;
 

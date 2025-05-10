@@ -21,6 +21,10 @@ public final class CFConfig {
     @Config.RequiresWorldRestart
     public static boolean FishingInAnyLiquid = false;
 
+    @Config.Comment("If true, the fishing conditions that are not met will be indicated when fishing")
+    @Config.RequiresWorldRestart
+    public static boolean EnableTip = true;
+
     @Config.Comment("I found that there is no fixed parameter to determine the degree of deceleration of different liquids\n" +
             "Otherwise, the default value will be used\n" +
             "This determines the initial speed at which the catch is flown(addition, not multiplication)\n" +

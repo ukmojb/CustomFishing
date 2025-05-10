@@ -117,6 +117,8 @@ dependencies {
 
     runtimeOnly "CraftTweaker2:CraftTweaker2-MC1120-Main:1.12-4.1.20.695"
 
+    implementation "mezz:jei:4.28.0"
+
     if (project.use_mixins.toBoolean()) {
         // Change your mixin refmap name here:
         String mixin = modUtils.enableMixins('org.spongepowered:mixin:0.8.3', "mixins.${project.archives_base_name}.refmap.json")

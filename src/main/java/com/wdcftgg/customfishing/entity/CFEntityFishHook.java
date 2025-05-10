@@ -1,10 +1,10 @@
 package com.wdcftgg.customfishing.entity;
 
 import com.wdcftgg.customfishing.CFConfig;
-import com.wdcftgg.customfishing.crt.FishingCondition;
 import com.wdcftgg.customfishing.crt.FishingConditionInit;
+import com.wdcftgg.customfishing.crt.impl.FishingCondition;
+import com.wdcftgg.customfishing.util.Tools;
 import net.minecraft.block.BlockLiquid;
-import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
@@ -33,15 +33,14 @@ import net.minecraft.world.storage.loot.LootContext;
 import net.minecraft.world.storage.loot.LootTable;
 import net.minecraft.world.storage.loot.LootTableList;
 import net.minecraft.util.SoundEvent;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 
 public class CFEntityFishHook extends EntityFishHook {
@@ -276,7 +275,7 @@ public class CFEntityFishHook extends EntityFishHook {
 
             for (FishingCondition fishingCondition : FishingConditionInit.getAllFishingCondition()) {
                 if (haveCustomLiquid) break;
-                boolean isFishingCondition = passFishingCondition(fishingCondition, liquidName, world.getBiome(this.getPosition()).getRegistryName(), world.provider.getDimension());
+                boolean isFishingCondition = !passFishingCondition(fishingCondition, this).contains(false);
 
 
                 haveCustomLiquid = (CFConfig.FishingInAnyLiquid || isFishingCondition);
@@ -441,32 +440,55 @@ public class CFEntityFishHook extends EntityFishHook {
 
                 Collections.shuffle(fishingConditionList);
 
+                boolean vanillaFishing = false;
+
+                //奖励池
                 for (FishingCondition fishingCondition : FishingConditionInit.getAllFishingCondition()) {
                     Random random = new Random();
-                    boolean isFishingCondition = passFishingCondition(fishingCondition, liquidName, world.getBiome(this.getPosition()).getRegistryName(), world.provider.getDimension());
+                    boolean isFishingCondition = !passFishingCondition(fishingCondition, this).contains(false);
+
+                    if (fishingCondition.lootRes == null) {
+                        vanillaFishing = true;
+                        continue;
+                    }
 
                     if (CFConfig.FishingInAnyLiquid) {
-                        result = (isFishingCondition)
-                                ? world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes()).generateLootForPools(random, lootcontext$builder.build())
-                                : result;
+                        if (isFishingCondition) {
+                            result = world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes()).generateLootForPools(random, lootcontext$builder.build());
+                        } else {
+                            vanillaFishing = true;
+                        }
                     } else {
                         result = (isFishingCondition)
                                 ? world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes()).generateLootForPools(random, lootcontext$builder.build())
                                 : new ArrayList<>();
                     }
+                    if (isFishingCondition) {
+                        if (!fishingCondition.fishRods.isEmpty()) Tools.damageFishRod(fishingCondition.fishRods, getAngler(), fishingCondition.damage);
+                        if (!fishingCondition.fishBaits.isEmpty()) Tools.removeFishBaits(fishingCondition.fishBaits, getAngler().inventory);
+                        break;
+                    }
                 }
-
 
                 for (FishingCondition fishingCondition : fishingConditionList) {
                     Random random = new Random();
-                    if (passFishingCondition(fishingCondition, liquidName, world.getBiome(this.getPosition()).getRegistryName(), world.provider.getDimension())) {
+                    if (!passFishingCondition(fishingCondition, this).contains(false)) {
+
+                        if (vanillaFishing) {
+                            result.clear();
+                            vanillaFishing = false;
+                        }
+
                         float rf = random.nextFloat();
-                        if (rf <= fishingCondition.getChance()) {
-                            result.add(fishingCondition.getItemStack());
+                        if (rf <= fishingCondition.chance) {
+                            if (fishingCondition.getItemStack() != ItemStack.EMPTY) result.add(fishingCondition.getItemStack());
+                            if (!fishingCondition.fishRods.isEmpty()) Tools.damageFishRod(fishingCondition.fishRods, getAngler(), fishingCondition.damage);
+                            if (!fishingCondition.fishBaits.isEmpty()) Tools.removeFishBaits(fishingCondition.fishBaits, getAngler().inventory);
                         }
                         if (CFConfig.OneAtATime) break;
                     }
                 }
+
 
                 event = new net.minecraftforge.event.entity.player.ItemFishedEvent(result, getInGround(this) ? 2 : 1, this);
                 net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(event);
@@ -523,14 +545,45 @@ public class CFEntityFishHook extends EntityFishHook {
         }
     }
 
-    private boolean passFishingCondition(FishingCondition fishingCondition, String liquid, ResourceLocation biomeid, Integer dimid) {
-        boolean pass1 = (fishingCondition.getLiquid() == null || fishingCondition.getLiquid().equals(liquid));
-        boolean pass2 = (fishingCondition.getItemStack() == null || fishingCondition.getItemStack() != ItemStack.EMPTY);
-        boolean pass3 = (fishingCondition.getLootRes().toString().equals("minecraft:") || world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes()) != LootTable.EMPTY_LOOT_TABLE);
-        boolean pass4 = (fishingCondition.getDimid() == null || fishingCondition.getDimid().equals(dimid));
-        boolean pass5 = (fishingCondition.getBiomeid() == "" || fishingCondition.getBiomeid().equals(biomeid.toString()));
+    private List<Boolean> passFishingCondition(FishingCondition fishingCondition, CFEntityFishHook fishHook) {
+        boolean dimensionPass = false;
+        boolean fishRodPass = false;
+        boolean altitudePass = false;
+        boolean fishBaitPass = false;
+        boolean timePass = false;
+        boolean biomePass = false;
 
-        return pass1 && pass2 && pass3 && pass4 && pass5;
+        EntityPlayer player = this.getAngler();
+
+        if (fishingCondition.dimension == null || fishingCondition.dimension == fishHook.dimension) dimensionPass = true;
+        if (fishingCondition.isDay == null || fishingCondition.isDay == fishHook.world.isDaytime()) timePass = true;
+        if (fishingCondition.biome == null || fishingCondition.biome.equals(world.getBiome(this.getPosition()).getRegistryName().toString())) biomePass = true;
+        if ((fishingCondition.altitudeEnd == null || fishingCondition.altitudeBegin == null)
+                || (fishingCondition.altitudeBegin <= fishHook.posY && fishingCondition.altitudeEnd >= fishHook.posY)) altitudePass = true;
+
+
+        ItemStack[] handsItem = new ItemStack[]{player.getHeldItemMainhand(), player.getHeldItemOffhand()};
+
+        if (!fishingCondition.fishRods.isEmpty()) {
+            for (ItemStack itemStack : handsItem) {
+                if (fishingCondition.fishRods.contains(itemStack.getItem())) {
+                    fishRodPass = true;
+                    break;
+                }
+            }
+        } else fishRodPass = true;
+
+
+        if (!fishingCondition.fishBaits.isEmpty()) {
+            for (Item item : fishingCondition.fishBaits) {
+                if (Tools.inventoryGetItem(player.inventory, item) != ItemStack.EMPTY) {
+                    fishBaitPass = true;
+                    break;
+                }
+            }
+        } else fishBaitPass = true;
+
+        return Arrays.asList(dimensionPass, fishRodPass, fishBaitPass, altitudePass, timePass, biomePass);
     }
 
 
