@@ -86,7 +86,7 @@ public class FishingCondition implements IFishingCondition {
     }
 
     @Override
-    public IFishingCondition setTime(boolean isDay) {
+    public IFishingCondition setDay(boolean isDay) {
         this.isDay = isDay;
         return this;
     }

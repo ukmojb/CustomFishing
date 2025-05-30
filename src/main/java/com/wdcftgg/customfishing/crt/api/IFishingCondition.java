@@ -34,7 +34,7 @@ public interface IFishingCondition {
     IFishingCondition setAltitude(int begin, int end);
 
     @ZenMethod
-    IFishingCondition setTime(boolean isDay);
+    IFishingCondition setDay(boolean isDay);
 
     @ZenMethod
     IFishingCondition setFishBait(IItemStack iitemStack);
