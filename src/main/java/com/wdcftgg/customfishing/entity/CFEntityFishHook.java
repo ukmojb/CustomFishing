@@ -8,6 +8,8 @@ import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityList;
+import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.MoverType;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.item.EntityXPOrb;
@@ -436,31 +438,19 @@ public class CFEntityFishHook extends EntityFishHook {
                 LootContext.Builder lootcontext$builder = new LootContext.Builder((WorldServer)this.world);
                 lootcontext$builder.withLuck((float)this.luck + getAngler().getLuck()).withPlayer(getAngler()).withLootedEntity(this); // Forge: add player & looted entity to LootContext
                 List<ItemStack> result = this.world.getLootTableManager().getLootTableFromLocation(LootTableList.GAMEPLAY_FISHING).generateLootForPools(this.rand, lootcontext$builder.build());
-//                List<ItemStack> result = this.world.getLootTableManager().getLootTableFromLocation(LootTableList.GAMEPLAY_FISHING).generateLootForPools(this.rand, lootcontext$builder.build());
+                List<Entity> resultEnt = new ArrayList<>();
 
                 List<FishingCondition> fishingConditionList = FishingConditionInit.getAllFishingCondition();
 
                 Collections.shuffle(fishingConditionList);
 
-                boolean hasFishingCondition = false;
-
                 List<FishingCondition> passPoolList = new ArrayList<>();
                 List<FishingCondition> passItemList = new ArrayList<>();
+                List<FishingCondition> passEntityList = new ArrayList<>();
 
                 //单独物品
                 for (FishingCondition fishingCondition : fishingConditionList) {
-                    if (!(passFishingCondition(fishingCondition, this).contains(false))) {
-//                        System.out.println(liquidName);
-//
-//                        float rf = random.nextFloat();
-//                        if (rf <= fishingCondition.chance) {
-//                            if (fishingCondition.getItemStack() != ItemStack.EMPTY) {
-//                                hasFishingCondition = true;
-//                                result.add(fishingCondition.getItemStack());
-//                            }
-//                            if (!fishingCondition.fishRods.isEmpty()) Tools.damageFishRod(fishingCondition.fishRods, getAngler(), fishingCondition.damage);
-//                            if (!fishingCondition.fishBaits.isEmpty()) Tools.removeFishBaits(fishingCondition.fishBaits, getAngler().inventory);
-//                        }
+                    if (!passFishingCondition(fishingCondition, this).contains(false)) {
                         passItemList.add(fishingCondition);
                         if (CFConfig.OneAtATime) break;
                     }
@@ -468,32 +458,30 @@ public class CFEntityFishHook extends EntityFishHook {
 
                 //奖励池
                 for (FishingCondition fishingCondition : FishingConditionInit.getAllFishingCondition()) {
-                    boolean isFishingCondition = !(passFishingCondition(fishingCondition, this).contains(false));
+                    boolean isFishingCondition = !passFishingCondition(fishingCondition, this).contains(false);
 
                     if (fishingCondition.lootRes == null) {
                         continue;
                     }
 
-                    if (isFishingCondition) passPoolList.add(fishingCondition);
-                    if (CFConfig.OneAtATime) break;
+                    if (isFishingCondition) {
+                        passPoolList.add(fishingCondition);
+                        if (CFConfig.OneAtATime) break;
+                    }
+                }
 
-//                    if (CFConfig.FishingInAnyLiquid) {
-//                        if (isFishingCondition) {
-//                            result.clear();
-//                            result = world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes()).generateLootForPools(random, lootcontext$builder.build());
-//                        }
-//                    } else {
-//                        result = (isFishingCondition)
-//                                ? world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes()).generateLootForPools(random, lootcontext$builder.build())
-//                                : new ArrayList<>();
-//                    }
-//                    if (isFishingCondition) {
-//                        if (!fishingCondition.fishRods.isEmpty())
-//                            Tools.damageFishRod(fishingCondition.fishRods, getAngler(), fishingCondition.damage);
-//                        if (!fishingCondition.fishBaits.isEmpty())
-//                            Tools.removeFishBaits(fishingCondition.fishBaits, getAngler().inventory);
-//                        if (CFConfig.OneAtATime) break;
-//                    }
+                //生物
+                for (FishingCondition fishingCondition : FishingConditionInit.getAllFishingCondition()) {
+                    boolean isFishingCondition = !passFishingCondition(fishingCondition, this).contains(false);
+
+                    if (fishingCondition.entity == null) {
+                        continue;
+                    }
+
+                    if (isFishingCondition) {
+                        passEntityList.add(fishingCondition);
+                        if (CFConfig.OneAtATime) break;
+                    }
                 }
 
                 if (!passItemList.isEmpty() || !passPoolList.isEmpty()) {
@@ -502,14 +490,22 @@ public class CFEntityFishHook extends EntityFishHook {
                     if (CFConfig.OneAtATime) {
                         Random random = new Random();
 
-                        if (random.nextBoolean()) {
-                            for (FishingCondition fishingCondition : passPoolList) {
-                                putItemFromPool(fishingCondition, result, lootcontext$builder);
-                            }
-                        } else {
-                            for (FishingCondition fishingCondition : passItemList) {
-                                putItem(fishingCondition, result);
-                            }
+                        switch (random.nextInt(3)) {
+                            case 0:
+                                for (FishingCondition fishingCondition : passPoolList) {
+                                    putItemFromPool(fishingCondition, result, lootcontext$builder);
+                                }
+                                break;
+                            case 1:
+                                for (FishingCondition fishingCondition : passItemList) {
+                                    putItem(fishingCondition, result);
+                                }
+                                break;
+                            case 2:
+                                for (FishingCondition fishingCondition : passEntityList) {
+                                    putEntity(fishingCondition, resultEnt);
+                                }
+                                break;
                         }
                     } else {
                         for (FishingCondition fishingCondition : passPoolList) {
@@ -518,6 +514,9 @@ public class CFEntityFishHook extends EntityFishHook {
 
                         for (FishingCondition fishingCondition : passItemList) {
                             putItem(fishingCondition, result);
+                        }
+                        for (FishingCondition fishingCondition : passEntityList) {
+                            putEntity(fishingCondition, resultEnt);
                         }
                     }
                 }
@@ -534,6 +533,8 @@ public class CFEntityFishHook extends EntityFishHook {
                 }
 
 
+                if (result.isEmpty()) result = this.world.getLootTableManager().getLootTableFromLocation(LootTableList.GAMEPLAY_FISHING).generateLootForPools(this.rand, lootcontext$builder.build());
+
                 for (ItemStack itemstack : result)
                 {
 
@@ -542,7 +543,7 @@ public class CFEntityFishHook extends EntityFishHook {
                     double d1 = getAngler().posY - this.posY;
                     double d2 = getAngler().posZ - this.posZ;
                     double d3 = (double)MathHelper.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
-                    double addspeed = CFConfig.getliquidSpeedMap().containsKey(liquidName) ? CFConfig.getliquidSpeedMap().get(liquidName) : 0.0F;
+                    double addspeed = CFConfig.getliquidSpeedMap().getOrDefault(liquidName, 0.0F);
 
 
                     entityitem.motionX = d0 * 0.1D + addspeed;
@@ -561,6 +562,27 @@ public class CFEntityFishHook extends EntityFishHook {
                     {
                         getAngler().addStat(StatList.FISH_CAUGHT, 1);
                     }
+                }
+
+                for (Entity entity : resultEnt)
+                {
+
+
+                    double d0 = getAngler().posX - this.posX;
+                    double d1 = getAngler().posY - this.posY;
+                    double d2 = getAngler().posZ - this.posZ;
+                    double d3 = (double)MathHelper.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
+                    double addspeed = CFConfig.getliquidSpeedMap().getOrDefault(liquidName, 0.0F);
+
+                    entity.motionX = d0 * 0.1D + addspeed;
+                    entity.motionY = d1 * 0.1D + (double)MathHelper.sqrt(d3) * 0.08D + addspeed;
+                    entity.motionZ = d2 * 0.1D + addspeed;
+
+                    entity.setPosition(this.posX, this.posY, this.posZ);
+
+                    this.world.spawnEntity(entity);
+                    getAngler().world.spawnEntity(new EntityXPOrb(getAngler().world, getAngler().posX, getAngler().posY + 0.5D, getAngler().posZ + 0.5D, this.rand.nextInt(6) + 1));
+
                 }
 
                 i = 1;
@@ -583,7 +605,7 @@ public class CFEntityFishHook extends EntityFishHook {
     private void putItem(FishingCondition fishingCondition, List<ItemStack> result) {
         Random random = new Random();
         float rf = random.nextFloat();
-        if (rf <= fishingCondition.chance) {
+        if (fishingCondition.chance == null || rf <= fishingCondition.chance) {
             if (fishingCondition.getItemStack() != ItemStack.EMPTY) {
                 result.add(fishingCondition.getItemStack());
             }
@@ -591,11 +613,31 @@ public class CFEntityFishHook extends EntityFishHook {
             if (!fishingCondition.fishBaits.isEmpty()) Tools.removeFishBaits(fishingCondition.fishBaits, getAngler().inventory);
         }
     }
+
+    private void putEntity(FishingCondition fishingCondition, List<Entity> result) {
+        Random random = new Random();
+        float rf = random.nextFloat();
+        if (fishingCondition.chance == null || rf <= fishingCondition.chance) {
+            if (!fishingCondition.getEntityStr().isEmpty()) {
+                Entity entity = EntityList.createEntityByIDFromName(new ResourceLocation(fishingCondition.getEntityStr()), world);
+
+                if (entity != null) {
+                    if (!fishingCondition.entityNbt.isEmpty()) entity.readFromNBT(fishingCondition.entityNbt);
+
+                    result.add(entity);
+                }
+            }
+            if (!fishingCondition.fishRods.isEmpty()) Tools.damageFishRod(fishingCondition.fishRods, getAngler(), fishingCondition.damage);
+            if (!fishingCondition.fishBaits.isEmpty()) Tools.removeFishBaits(fishingCondition.fishBaits, getAngler().inventory);
+        }
+    }
+
     private void putItemFromPool(FishingCondition fishingCondition, List<ItemStack> result, LootContext.Builder lootcontext$builder) {
         Random random = new Random();
         float rf = random.nextFloat();
-        if (rf <= fishingCondition.chance) {
-            result.addAll(world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes()).generateLootForPools(random, lootcontext$builder.build()));
+        if (fishingCondition.chance == null || rf <= fishingCondition.chance) {
+            LootTable lootTable = world.getLootTableManager().getLootTableFromLocation(fishingCondition.getLootRes());
+            result.addAll(lootTable.generateLootForPools(random, lootcontext$builder.build()));
 
             if (!fishingCondition.fishRods.isEmpty())
                 Tools.damageFishRod(fishingCondition.fishRods, getAngler(), fishingCondition.damage);

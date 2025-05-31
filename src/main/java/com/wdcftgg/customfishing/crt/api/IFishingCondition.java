@@ -3,6 +3,7 @@ package com.wdcftgg.customfishing.crt.api;
 
 import com.wdcftgg.customfishing.crt.impl.FishingCondition;
 import crafttweaker.annotations.ZenRegister;
+import crafttweaker.api.data.IData;
 import crafttweaker.api.item.IItemStack;
 import stanhebben.zenscript.annotations.ZenClass;
 import stanhebben.zenscript.annotations.ZenMethod;
@@ -41,6 +42,9 @@ public interface IFishingCondition {
 
     @ZenMethod
     IFishingCondition setFishBaits(IItemStack[] iitemStacks);
+
+    @ZenMethod
+    IFishingCondition setEntityData(IData nbt);
 
     @ZenMethod
     void register();

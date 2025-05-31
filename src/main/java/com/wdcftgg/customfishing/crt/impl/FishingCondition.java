@@ -2,10 +2,14 @@ package com.wdcftgg.customfishing.crt.impl;
 
 import com.wdcftgg.customfishing.crt.FishingConditionInit;
 import com.wdcftgg.customfishing.crt.api.IFishingCondition;
+import crafttweaker.api.data.IData;
 import crafttweaker.api.item.IItemStack;
 import crafttweaker.api.minecraft.CraftTweakerMC;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityList;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fluids.Fluid;
 
@@ -19,6 +23,7 @@ public class FishingCondition implements IFishingCondition {
     public final Fluid fluid;
     public final ItemStack itemStack;
     public final ResourceLocation lootRes;
+    public final String entity;
     public String biome = null;
     public Integer dimension = null;
     public Integer damage = null;
@@ -28,17 +33,28 @@ public class FishingCondition implements IFishingCondition {
     public Integer altitudeBegin = null;
     public Integer altitudeEnd = null;
     public Float chance = null;
+    public NBTTagCompound entityNbt = new NBTTagCompound();
 
     public FishingCondition(Fluid fluid, ItemStack itemStack){
         this.fluid = fluid;
         this.itemStack = itemStack;
         this.lootRes = null;
+        this.entity = null;
+    }
+
+    public FishingCondition(Fluid fluid, String entity){
+        this.fluid = fluid;
+        this.itemStack = ItemStack.EMPTY;
+        this.entity = entity;
+        this.lootRes = null;
+
     }
 
     public FishingCondition(Fluid fluid, ResourceLocation lootRes){
         this.fluid = fluid;
         this.itemStack = ItemStack.EMPTY;
         this.lootRes = lootRes;
+        this.entity = null;
     }
 
     @Override
@@ -104,8 +120,10 @@ public class FishingCondition implements IFishingCondition {
         return this;
     }
 
-    public Fluid getFluid() {
-        return fluid;
+    @Override
+    public IFishingCondition setEntityData(IData nbt) {
+        this.entityNbt = CraftTweakerMC.getNBTCompound(nbt);
+        return this;
     }
 
     public ItemStack getItemStack() {
@@ -116,40 +134,8 @@ public class FishingCondition implements IFishingCondition {
         return lootRes;
     }
 
-    public String getBiome() {
-        return biome;
-    }
-
-    public int getDimension() {
-        return dimension;
-    }
-
-    public int getDamage() {
-        return damage;
-    }
-
-    public List<Item> getFishRods() {
-        return fishRods;
-    }
-
-    public List<Item> getFishBaits() {
-        return fishBaits;
-    }
-
-    public boolean isDay() {
-        return isDay;
-    }
-
-    public int getAltitudeBegin() {
-        return altitudeBegin;
-    }
-
-    public int getAltitudeEnd() {
-        return altitudeEnd;
-    }
-
-    public float getChance() {
-        return chance;
+    public String getEntityStr() {
+        return entity;
     }
 
     @Override

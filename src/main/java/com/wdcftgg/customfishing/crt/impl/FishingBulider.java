@@ -2,6 +2,8 @@ package com.wdcftgg.customfishing.crt.impl;
 
 import com.wdcftgg.customfishing.crt.api.IFishingCondition;
 import crafttweaker.annotations.ZenRegister;
+import crafttweaker.api.entity.IEntity;
+import crafttweaker.api.entity.IEntityDefinition;
 import crafttweaker.api.item.IItemStack;
 import crafttweaker.api.liquid.ILiquidStack;
 import crafttweaker.api.minecraft.CraftTweakerMC;
@@ -17,6 +19,11 @@ import java.util.List;
 @ZenClass("mods.customfishing.FishingBulider")
 public class FishingBulider {
 
+
+    @ZenMethod
+    public static IFishingCondition create(ILiquidStack liquid, IEntityDefinition entity) {
+        return new FishingCondition(CraftTweakerMC.getFluid(liquid.getDefinition()), entity.getId());
+    }
 
     @ZenMethod
     public static IFishingCondition create(ILiquidStack liquid, IItemStack iitemStack) {
