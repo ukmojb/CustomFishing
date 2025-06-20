@@ -40,7 +40,7 @@ public class CustomFishing {
 
     public static final String MODID = "customfishing";
     public static final String NAME = "CustomFishing";
-    public static final String VERSION = "0.1.3";
+    public static final String VERSION = "0.1.5";
     private static Field pools;
     private static Field lootEntries;
     public static Map<String, LootTable> tables = new HashMap<>();

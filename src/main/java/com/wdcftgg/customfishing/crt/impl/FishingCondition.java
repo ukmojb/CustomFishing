@@ -82,7 +82,7 @@ public class FishingCondition implements IFishingCondition {
     }
 
     @Override
-    public IFishingCondition setFishRod(IItemStack iitemStack) {
+    public IFishingCondition addFishRod(IItemStack iitemStack) {
         this.fishRods.add(CraftTweakerMC.getItemStack(iitemStack).getItem());
         return this;
     }
@@ -108,13 +108,13 @@ public class FishingCondition implements IFishingCondition {
     }
 
     @Override
-    public IFishingCondition setFishBait(IItemStack iitemStack) {
+    public IFishingCondition addFishBait(IItemStack iitemStack) {
         this.fishBaits.add(CraftTweakerMC.getItemStack(iitemStack).getItem());
         return this;
     }
 
     @Override
-    public IFishingCondition setFishBaits(IItemStack[] iitemStacks) {
+    public IFishingCondition addFishBaits(IItemStack[] iitemStacks) {
         ItemStack[] itemStacks = CraftTweakerMC.getItemStacks(iitemStacks);
         this.fishBaits.addAll(Arrays.stream(itemStacks).map(ItemStack::getItem).collect(Collectors.toList()));
         return this;

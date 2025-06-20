@@ -25,7 +25,7 @@ public interface IFishingCondition {
     IFishingCondition additionalDamage(int damage);
 
     @ZenMethod
-    IFishingCondition setFishRod(IItemStack iitemStack);
+    IFishingCondition addFishRod(IItemStack iitemStack);
 
     @ZenMethod
     IFishingCondition addFishRods(IItemStack[] iitemStacks);
@@ -38,10 +38,10 @@ public interface IFishingCondition {
     IFishingCondition setDay(boolean isDay);
 
     @ZenMethod
-    IFishingCondition setFishBait(IItemStack iitemStack);
+    IFishingCondition addFishBait(IItemStack iitemStack);
 
     @ZenMethod
-    IFishingCondition setFishBaits(IItemStack[] iitemStacks);
+    IFishingCondition addFishBaits(IItemStack[] iitemStacks);
 
     @ZenMethod
     IFishingCondition setEntityData(IData nbt);
