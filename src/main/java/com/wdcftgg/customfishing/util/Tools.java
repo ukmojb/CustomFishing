@@ -1,6 +1,5 @@
 package com.wdcftgg.customfishing.util;
 
-import crafttweaker.mc1120.item.MCItemStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
@@ -11,9 +10,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
 import net.minecraft.world.World;
 
-import java.lang.reflect.Array;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Tools {
 

@@ -7,7 +7,6 @@ import com.wdcftgg.customfishing.util.Tools;
 import mezz.jei.api.ingredients.IIngredients;
 import mezz.jei.api.ingredients.VanillaTypes;
 import mezz.jei.api.recipe.IRecipeWrapper;
-import net.minecraft.client.Minecraft;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
@@ -19,15 +18,16 @@ import net.minecraft.world.storage.loot.*;
 import net.minecraft.world.storage.loot.functions.LootFunction;
 import net.minecraft.world.storage.loot.functions.SetMetadata;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidUtil;
-import net.minecraftforge.fluids.UniversalBucket;
-import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 public class FishingConditionRecipe implements IRecipeWrapper {
 
@@ -45,7 +45,6 @@ public class FishingConditionRecipe implements IRecipeWrapper {
     public Float chance = null;
 
     public FishingConditionRecipe(FishingCondition fishingCondition) {
-//        in = new ArrayList<>();
         fluid = fishingCondition.fluid;
         itemStack = fishingCondition.itemStack;
         biome = fishingCondition.biome;
@@ -65,24 +64,14 @@ public class FishingConditionRecipe implements IRecipeWrapper {
 
         ItemStack fluiditem;
 
-//        if (fluid.getName().equals("water")) {
-//            fluiditem = new ItemStack(Blocks.WATER);
-//        } else if (fluid.getName().equals("lava")) {
-//            fluiditem = new ItemStack(Blocks.LAVA);
-//        } else {
-//            fluiditem = new ItemStack(fluid.getBlock());
-//        }
-
-        switch (fluid.getName()) {
-            case "water":
-                fluiditem = new ItemStack(Items.WATER_BUCKET);
-                break;
-            case "lava":
-                fluiditem = new ItemStack(Items.LAVA_BUCKET);
-                break;
-            default:
-                fluiditem = FluidUtil.getFilledBucket(new FluidStack(fluid, 1000));
-                break;
+        if (fluid == null) {
+            fluiditem = new ItemStack(Items.BUCKET).setStackDisplayName("任意液体");
+        } else if (fluid == FluidRegistry.WATER) {
+            fluiditem = new ItemStack(Items.WATER_BUCKET);
+        } else if (fluid == FluidRegistry.LAVA) {
+            fluiditem = new ItemStack(Items.LAVA_BUCKET);
+        } else {
+            fluiditem = FluidUtil.getFilledBucket(new FluidStack(fluid, 1000));
         }
 
 
@@ -143,35 +132,10 @@ public class FishingConditionRecipe implements IRecipeWrapper {
 
 
         ingredients.setOutputs(VanillaTypes.ITEM, outList);
-//        ingredients.setInputLists(VanillaTypes.ITEM, in);
-    }
-
-    @Override
-    public void drawInfo(Minecraft minecraft, int recipeWidth, int recipeHeight, int mouseX, int mouseY) {
-//        if (info == null) return;
-//
-//        String text = I18n.format(info);
-//
-//        int width = minecraft.fontRenderer.getStringWidth(text);
-//        int x = (int) ((recipeWidth - width) + 25);
-//        int y = 4;
-//
-//        minecraft.fontRenderer.drawString(text, x - 30, y, Color.BLACK.getRGB());
-
     }
 
     public static List<LootPool> getPools(LootTable table) {
-        try
-        {
-            Field field = ReflectionHelper.findField(LootTable.class, "pools", "field_186466_c");
-            List<LootPool> pools = (List<LootPool>) field.get(table);
-            return pools;
-        }
-        catch (Exception e)
-        {
-            return null;
-//            throw new RuntimeException(e);
-        }
+        return CustomFishing.getPools(table);
     }
 
     private static LootTableManager manager;

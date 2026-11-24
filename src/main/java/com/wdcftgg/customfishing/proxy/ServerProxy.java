@@ -1,7 +1,5 @@
 package com.wdcftgg.customfishing.proxy;
 
-import com.wdcftgg.customfishing.entity.ModEntityInit;
-
 public class ServerProxy extends CommonProxy {
 
     private static int ENTITY_NEXT_ID = 1;

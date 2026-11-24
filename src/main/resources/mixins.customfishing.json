@@ -3,8 +3,7 @@
   "compatibilityLevel": "JAVA_8",
   "refmap": "mixins.customfishing.refmap.json",
   "mixins": [
-    "MixinEntityFishHook",
-    "MixinItemFishingRod"
+    "MixinEntityFishHook"
   ],
   "server": [
   ],

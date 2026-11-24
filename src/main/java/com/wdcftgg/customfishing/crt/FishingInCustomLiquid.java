@@ -1,17 +1,15 @@
 package com.wdcftgg.customfishing.crt;
 
+import com.wdcftgg.customfishing.crt.impl.FishingCondition;
+import crafttweaker.CraftTweakerAPI;
 import crafttweaker.annotations.ZenRegister;
 import crafttweaker.api.item.IItemStack;
-import crafttweaker.api.liquid.ILiquidDefinition;
 import crafttweaker.api.liquid.ILiquidStack;
 import crafttweaker.api.minecraft.CraftTweakerMC;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fluids.Fluid;
 import stanhebben.zenscript.annotations.ZenClass;
 import stanhebben.zenscript.annotations.ZenMethod;
-
-import java.util.Arrays;
-import java.util.List;
 
 @ZenRegister
 @ZenClass("mods.customfishing.FishingInCustomLiquid")
@@ -19,22 +17,21 @@ public class FishingInCustomLiquid {
 
     @ZenMethod
     public static void inLiquidItemChancePoolDimBiome(ILiquidStack liquid, String pool, IItemStack iitemStack, Float chance, String biomeid, Integer dimid) {
-        List<String> stringList = Arrays.asList(pool.split(":"));
-        String namespaceIn;
-        String pathIn;
-        if (stringList.size() <= 1) {
-            namespaceIn = "minecraft";
-            pathIn = pool;
+        Fluid fluid = liquid == null ? null : CraftTweakerMC.getFluid(liquid.getDefinition());
+        FishingCondition fishingCondition;
+        if (pool != null && !pool.isEmpty()) {
+            fishingCondition = new FishingCondition(fluid, new ResourceLocation(pool));
+        } else if (iitemStack != null) {
+            fishingCondition = new FishingCondition(fluid, CraftTweakerMC.getItemStack(iitemStack));
         } else {
-            namespaceIn = stringList.get(0);
-            pathIn =  stringList.get(1);
+            CraftTweakerAPI.logError("inLiquidItemChancePoolDimBiome 需要物品或战利品表");
+            return;
         }
 
-//        FishingCondition fishingCondition =
-//                new FishingCondition(
-//                        (liquid == null) ? null : CraftTweakerMC.getFluid(liquid.getDefinition()).getBlock().getRegistryName().toString(), new ResourceLocation(namespaceIn, pathIn),
-//                        CraftTweakerMC.getItemStack(iitemStack),
-//                        chance, biomeid, dimid);
-//        FishingConditionInit.registryFishingCondition(fishingCondition);
+        if (chance != null) fishingCondition.setChance(chance);
+        if (biomeid != null && !biomeid.isEmpty()) fishingCondition.setBiome(biomeid);
+        if (dimid != null) fishingCondition.setDimension(dimid);
+
+        FishingConditionInit.registryFishingCondition(fishingCondition);
     }
 }

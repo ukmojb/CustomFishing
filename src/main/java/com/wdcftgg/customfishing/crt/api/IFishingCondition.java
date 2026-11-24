@@ -1,7 +1,6 @@
 package com.wdcftgg.customfishing.crt.api;
 
 
-import com.wdcftgg.customfishing.crt.impl.FishingCondition;
 import crafttweaker.annotations.ZenRegister;
 import crafttweaker.api.data.IData;
 import crafttweaker.api.item.IItemStack;
